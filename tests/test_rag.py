@@ -80,3 +80,45 @@ def test_high_similarity_chunks_are_accepted():
         rag.documents[3]["chunk_id"],
     ]
     mock_generate.assert_called_once()
+
+
+
+def test_work_from_home_document_source():
+    fake_index = MagicMock()
+    fake_index.search.return_value = (
+        np.array([[0.85, 0.60, 0.50]], dtype="float32"),
+        np.array([[6, 1, 2]], dtype="int64"),
+    )
+
+    with (
+        patch.object(rag, "index", fake_index),
+        patch.object(
+            rag.client.models,
+            "embed_content",
+        ) as mock_embed,
+        patch.object(
+            rag.client.models,
+            "generate_content",
+        ) as mock_generate,
+    ):
+        mock_embedding_result = MagicMock()
+        mock_embedding_result.embeddings = [
+            MagicMock(values=[0.1] * 3072)
+        ]
+        mock_embed.return_value = mock_embedding_result
+
+        mock_response = MagicMock()
+        mock_response.text = (
+            "Employees can work from home up to 2 days per week "
+            "with manager approval. Source: work_from_home.txt"
+        )
+        mock_generate.return_value = mock_response
+
+        result = rag.answer_question(
+            "How many days per week can employees work from home?"
+        )
+
+    assert result["sources"][0]["source"] == "work_from_home.txt"
+    assert result["sources"][0]["chunk_id"] == "work_from_home_3"
+    assert len(result["sources"]) == 1
+    mock_generate.assert_called_once()
