@@ -74,31 +74,23 @@ def test_successful_ai_response():
 
 
 
-def test_gemini_quota_exceeded():
-    from google.genai.errors import ClientError
+
+def test_local_ai_service_error():
     from unittest.mock import patch
 
-    error = ClientError(
-        429,
-        {
-            "error": {
-                "code": 429,
-                "message": "RESOURCE_EXHAUSTED: quota exceeded",
-                "status": "RESOURCE_EXHAUSTED",
-            }
-        },
-    )
-
-    with patch("main.answer_question", side_effect=error):
+    with patch(
+        "main.answer_question",
+        side_effect=RuntimeError("Ollama service unavailable"),
+    ):
         response = client.post(
             "/ask",
             json={"question": "What is the leave policy?"},
         )
 
-    assert response.status_code == 429
+    assert response.status_code == 502
     assert response.json() == {
         "detail": (
-            "Gemini API quota exceeded. "
-            "Check your quota or retry after it resets."
+            "Knowledge assistant request failed. "
+            "Check server logs."
         )
     }

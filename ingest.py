@@ -4,19 +4,7 @@ from pathlib import Path
 
 import faiss
 import numpy as np
-from dotenv import load_dotenv
-from google import genai
-from google.genai import types
-
-load_dotenv()
-
-import os
-
-api_key = os.getenv("GEMINI_API_KEY")
-if not api_key:
-    raise ValueError("GEMINI_API_KEY is missing from .env")
-
-client = genai.Client(api_key=api_key)
+import requests
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
@@ -24,9 +12,12 @@ VECTOR_DIR = BASE_DIR / "vector_store"
 
 VECTOR_DIR.mkdir(parents=True, exist_ok=True)
 
+OLLAMA_URL = "http://localhost:11434/api/embed"
+EMBED_MODEL = "nomic-embed-text"
+
 
 def load_documents():
-    """Read every .txt file from the data directory."""
+    """Read every non-empty line from all .txt files."""
     documents = []
 
     for file_path in sorted(DATA_DIR.glob("*.txt")):
@@ -36,54 +27,57 @@ def load_documents():
             print(f"Skipping empty file: {file_path.name}")
             continue
 
-        # Split text into non-empty lines as initial chunks.
         for line_number, line in enumerate(text.splitlines(), start=1):
             line = line.strip()
 
-            if not line:
-                continue
-
-            documents.append(
-                {
-                    "chunk_id": f"{file_path.stem}_{line_number}",
-                    "source": file_path.name,
-                    "text": line,
-                }
-            )
+            if line:
+                documents.append(
+                    {
+                        "chunk_id": f"{file_path.stem}_{line_number}",
+                        "source": file_path.name,
+                        "text": line,
+                    }
+                )
 
     return documents
+
+
+def embed_text(text):
+    """Generate a local embedding using Ollama."""
+    response = requests.post(
+        OLLAMA_URL,
+        json={
+            "model": EMBED_MODEL,
+            "input": text,
+        },
+        timeout=120,
+    )
+    response.raise_for_status()
+
+    embeddings = response.json().get("embeddings", [])
+
+    if not embeddings:
+        raise RuntimeError("Ollama returned an empty embedding.")
+
+    return embeddings[0]
 
 
 def main():
     documents = load_documents()
 
     if not documents:
-        raise ValueError(
-            f"No non-empty .txt documents found in {DATA_DIR}"
-        )
+        raise ValueError(f"No non-empty .txt documents found in {DATA_DIR}")
 
     embeddings = []
 
     for document in documents:
-        result = client.models.embed_content(
-            model="gemini-embedding-001",
-            contents=document["text"],
-            config=types.EmbedContentConfig(
-                task_type="RETRIEVAL_DOCUMENT"
-            ),
-        )
+        vector = embed_text(document["text"])
+        embeddings.append(vector)
+        print(f"Embedded: {document['chunk_id']}")
 
-        if not result.embeddings:
-            raise RuntimeError(
-                f"Embedding failed for {document['chunk_id']}"
-            )
-
-        embeddings.append(result.embeddings[0].values)
-
-    vectors = np.array(embeddings, dtype="float32")
+    vectors = np.asarray(embeddings, dtype="float32")
     faiss.normalize_L2(vectors)
 
-    # Inner product on normalized vectors gives cosine similarity.
     index = faiss.IndexFlatIP(vectors.shape[1])
     index.add(vectors)
 
@@ -99,7 +93,7 @@ def main():
 
     print(f"Documents processed: {len(set(d['source'] for d in documents))}")
     print(f"Chunks indexed: {len(documents)}")
-    print("FAISS index and metadata saved successfully.")
+    print("Local FAISS index and metadata saved successfully.")
 
 
 if __name__ == "__main__":
