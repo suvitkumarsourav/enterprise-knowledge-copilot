@@ -71,3 +71,34 @@ def test_successful_ai_response():
     mock_answer.assert_called_once_with(
         "How many paid leave days do employees get?"
     )
+
+
+
+def test_gemini_quota_exceeded():
+    from google.genai.errors import ClientError
+    from unittest.mock import patch
+
+    error = ClientError(
+        429,
+        {
+            "error": {
+                "code": 429,
+                "message": "RESOURCE_EXHAUSTED: quota exceeded",
+                "status": "RESOURCE_EXHAUSTED",
+            }
+        },
+    )
+
+    with patch("main.answer_question", side_effect=error):
+        response = client.post(
+            "/ask",
+            json={"question": "What is the leave policy?"},
+        )
+
+    assert response.status_code == 429
+    assert response.json() == {
+        "detail": (
+            "Gemini API quota exceeded. "
+            "Check your quota or retry after it resets."
+        )
+    }

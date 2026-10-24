@@ -1,8 +1,10 @@
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from google.genai.errors import ClientError
 
 from rag import answer_question
+
 
 app = FastAPI(
     title="Enterprise Knowledge Copilot",
@@ -42,8 +44,30 @@ def ask_ai(request: AskRequest):
     except HTTPException:
         raise
 
+    except ClientError as error:
+        error_message = str(error)
+        print(f"Gemini API error: {error_message}")
+
+        if (
+            "429" in error_message
+            or "RESOURCE_EXHAUSTED" in error_message
+        ):
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    "Gemini API quota exceeded. "
+                    "Check your quota or retry after it resets."
+                ),
+            )
+
+        raise HTTPException(
+            status_code=502,
+            detail="AI service request failed. Check server logs.",
+        )
+
     except Exception as error:
         print(f"RAG service error: {error}")
+
         raise HTTPException(
             status_code=502,
             detail="Knowledge assistant request failed. Check server logs.",
