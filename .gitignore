@@ -17,3 +17,5 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+# Generated vector store
+vector_store/
