@@ -1,0 +1,27 @@
+[
+  {
+    "chunk_id": "policy_1",
+    "source": "company_policy.txt",
+    "text": "Company Leave Policy"
+  },
+  {
+    "chunk_id": "policy_2",
+    "source": "company_policy.txt",
+    "text": "Employees receive 20 days of paid leave per calendar year."
+  },
+  {
+    "chunk_id": "policy_3",
+    "source": "company_policy.txt",
+    "text": "Employees must request leave from their manager at least 5 working days in advance."
+  },
+  {
+    "chunk_id": "policy_4",
+    "source": "company_policy.txt",
+    "text": "Unused paid leave can be carried forward up to a maximum of 5 days."
+  },
+  {
+    "chunk_id": "policy_5",
+    "source": "company_policy.txt",
+    "text": "Sick leave requires manager notification as soon as reasonably possible."
+  }
+]
