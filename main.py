@@ -1,24 +1,13 @@
 
-import os
-
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from google import genai
 
-load_dotenv()
-
-api_key = os.getenv("GEMINI_API_KEY")
-
-if not api_key:
-    raise ValueError("GEMINI_API_KEY is missing from .env")
-
-client = genai.Client(api_key=api_key)
+from rag import answer_question
 
 app = FastAPI(
     title="Enterprise Knowledge Copilot",
     description="An AI-powered enterprise knowledge assistant",
-    version="0.1.0",
+    version="0.2.0",
 )
 
 
@@ -42,27 +31,20 @@ def ask_ai(request: AskRequest):
         )
 
     try:
-        response = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=question,
-        )
-
-        if not response.text:
-            raise HTTPException(
-                status_code=502,
-                detail="The AI returned an empty response",
-            )
+        result = answer_question(question)
 
         return {
             "question": question,
-            "answer": response.text,
+            "answer": result["answer"],
+            "sources": result["sources"],
         }
 
     except HTTPException:
         raise
 
-    except Exception:
+    except Exception as error:
+        print(f"RAG service error: {error}")
         raise HTTPException(
             status_code=502,
-            detail="AI service request failed. Check the server logs.",
+            detail="Knowledge assistant request failed. Check server logs.",
         )
