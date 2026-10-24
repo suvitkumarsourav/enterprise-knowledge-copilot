@@ -1,0 +1,611 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#212121">
+    <title>Enterprise Knowledge Copilot</title>
+
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #212121;
+            --sidebar: #171717;
+            --surface: #303030;
+            --surface-hover: #3a3a3a;
+            --border: #454545;
+            --text: #f5f5f5;
+            --muted: #a3a3a3;
+            --accent: #a5b4fc;
+            --error: #ff9999;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            overflow: hidden;
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        button, textarea {
+            font: inherit;
+        }
+
+        button:focus-visible,
+        textarea:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
+        }
+
+        .sidebar {
+            width: 250px;
+            flex-shrink: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            background: var(--sidebar);
+        }
+
+        .brand {
+            font-size: 18px;
+            font-weight: bold;
+            line-height: 1.5;
+        }
+
+        .brand-icon {
+            color: var(--accent);
+            margin-right: 5px;
+        }
+
+        .new-chat {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            background: #242424;
+            color: var(--text);
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .new-chat:hover {
+            background: var(--surface-hover);
+        }
+
+        .sidebar-note {
+            margin-top: auto;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.7;
+        }
+
+        .main {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .topbar {
+            min-height: 60px;
+            padding: 18px 24px;
+            border-bottom: 1px solid #383838;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .chat {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 24px 20px;
+            scroll-behavior: smooth;
+        }
+
+        .welcome {
+            max-width: 720px;
+            margin: 12vh auto 35px;
+            text-align: center;
+        }
+
+        .welcome h1 {
+            margin-bottom: 12px;
+            font-size: clamp(24px, 4vw, 32px);
+        }
+
+        .welcome p {
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .suggestions {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+        .suggestion {
+            padding: 10px 13px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: transparent;
+            color: #ddd;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .suggestion:hover {
+            background: var(--surface);
+        }
+
+        .messages {
+            max-width: 760px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .message {
+            margin: 24px 0;
+            line-height: 1.75;
+            overflow-wrap: anywhere;
+        }
+
+        .user-message {
+            width: fit-content;
+            max-width: 88%;
+            margin-left: auto;
+            padding: 12px 17px;
+            border-radius: 18px;
+            background: var(--surface);
+            white-space: pre-wrap;
+        }
+
+        .assistant-message {
+            padding: 2px 0;
+        }
+
+        .assistant-label {
+            margin-bottom: 8px;
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .answer-text {
+            white-space: pre-wrap;
+        }
+
+        .thinking {
+            color: var(--muted);
+        }
+
+        .thinking::after {
+            content: "";
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            margin-left: 7px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { opacity: 0.3; }
+            to { opacity: 1; }
+        }
+
+        .error {
+            color: var(--error);
+        }
+
+        .sources {
+            margin-top: 15px;
+            padding: 13px;
+            border: 1px solid #414141;
+            border-radius: 10px;
+            background: #292929;
+            color: #ddd;
+            font-size: 13px;
+        }
+
+        .sources summary {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .sources-list {
+            padding: 0;
+            margin: 12px 0 0;
+        }
+
+        .source-item {
+            padding: 11px 12px;
+            margin-top: 9px;
+            border-radius: 8px;
+            background: #363636;
+            list-style: none;
+        }
+
+        .source-filename {
+            display: block;
+            overflow-wrap: anywhere;
+            color: #f5f5f5;
+            font-weight: bold;
+        }
+
+        .chunk-label {
+            display: block;
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .composer-area {
+            flex-shrink: 0;
+            padding: 12px 20px 18px;
+        }
+
+        .composer {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 12px;
+            border: 1px solid #505050;
+            border-radius: 18px;
+            background: var(--surface);
+        }
+
+        .composer:focus-within {
+            border-color: #777;
+        }
+
+        #question {
+            flex: 1;
+            min-width: 0;
+            min-height: 28px;
+            max-height: 140px;
+            padding: 6px;
+            resize: none;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: white;
+            line-height: 1.5;
+        }
+
+        #question::placeholder {
+            color: var(--muted);
+        }
+
+        #send {
+            flex-shrink: 0;
+            min-width: 68px;
+            padding: 10px 13px;
+            border: none;
+            border-radius: 11px;
+            background: #f5f5f5;
+            color: #171717;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #send:hover:not(:disabled) {
+            background: #ddd;
+        }
+
+        #send:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .hint {
+            max-width: 760px;
+            margin: 10px auto 0;
+            color: #888;
+            text-align: center;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 650px) {
+            .sidebar {
+                display: none;
+            }
+
+            .topbar {
+                min-height: 54px;
+                padding: 17px 16px;
+            }
+
+            .chat {
+                padding: 18px 14px;
+            }
+
+            .welcome {
+                margin-top: 9vh;
+            }
+
+            .suggestions {
+                flex-direction: column;
+            }
+
+            .suggestion {
+                text-align: left;
+            }
+
+            .composer-area {
+                padding: 10px 12px 14px;
+            }
+
+            .user-message {
+                max-width: 94%;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-icon">✦</span>
+            Enterprise<br>Knowledge Copilot
+        </div>
+
+        <button type="button" class="new-chat" id="newChat">
+            ＋ New chat
+        </button>
+
+        <div class="sidebar-note">
+            Powered by your enterprise knowledge base.<br>
+            Local AI • RAG • FAISS
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">Enterprise Knowledge Copilot</header>
+
+        <section class="chat" id="chat">
+            <div class="welcome" id="welcome">
+                <h1>How can I help you today?</h1>
+                <p>
+                    Ask questions about company policies, paid leave,
+                    work-from-home rules, and other indexed documents.
+                </p>
+
+                <div class="suggestions">
+                    <button type="button" class="suggestion"
+                        data-question="How many days per week can employees work from home?">
+                        Work-from-home policy
+                    </button>
+
+                    <button type="button" class="suggestion"
+                        data-question="How many paid leave days do employees receive per year?">
+                        Paid leave policy
+                    </button>
+                </div>
+            </div>
+
+            <div class="messages" id="messages" aria-live="polite"></div>
+        </section>
+
+        <div class="composer-area">
+            <form class="composer" id="chatForm">
+                <textarea
+                    id="question"
+                    placeholder="Ask a question about company policies..."
+                    rows="1"
+                    aria-label="Your question"
+                    required
+                ></textarea>
+
+                <button type="submit" id="send">↑ Send</button>
+            </form>
+
+            <div class="hint">
+                AI-generated answers may need verification. Check the source documents.
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const form = document.getElementById("chatForm");
+        const input = document.getElementById("question");
+        const sendButton = document.getElementById("send");
+        const messages = document.getElementById("messages");
+        const chat = document.getElementById("chat");
+        const welcome = document.getElementById("welcome");
+        const newChatButton = document.getElementById("newChat");
+
+        let requestInProgress = false;
+
+        function scrollToBottom() {
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function addMessage(text, className) {
+            const message = document.createElement("div");
+            message.className = "message " + className;
+            message.textContent = text;
+            messages.appendChild(message);
+            scrollToBottom();
+            return message;
+        }
+
+        function showSources(parent, sources) {
+            if (!Array.isArray(sources) || sources.length === 0) {
+                return;
+            }
+
+            const details = document.createElement("details");
+            details.className = "sources";
+
+            const summary = document.createElement("summary");
+            summary.textContent = `📚 Source documents (${sources.length})`;
+            details.appendChild(summary);
+
+            const list = document.createElement("ul");
+            list.className = "sources-list";
+
+            sources.forEach(source => {
+                const item = document.createElement("li");
+                item.className = "source-item";
+
+                const filename = source.source || "Unknown document";
+                const chunkId = source.chunk_id || "Unknown chunk";
+
+                const fileLabel = document.createElement("span");
+                fileLabel.className = "source-filename";
+                fileLabel.textContent = filename;
+
+                const chunkLabel = document.createElement("span");
+                chunkLabel.className = "chunk-label";
+                chunkLabel.textContent = `Chunk ID: ${chunkId}`;
+
+                item.appendChild(fileLabel);
+                item.appendChild(chunkLabel);
+                list.appendChild(item);
+            });
+
+            details.appendChild(list);
+            parent.appendChild(details);
+        }
+
+        function resetChat() {
+            if (requestInProgress) return;
+
+            messages.replaceChildren();
+            welcome.style.display = "block";
+            input.value = "";
+            input.style.height = "auto";
+            input.focus();
+        }
+
+        async function askQuestion(question) {
+            if (requestInProgress || !question.trim()) return;
+
+            requestInProgress = true;
+            welcome.style.display = "none";
+
+            addMessage(question, "user-message");
+
+            input.value = "";
+            input.style.height = "auto";
+            input.disabled = true;
+            sendButton.disabled = true;
+            sendButton.textContent = "...";
+
+            const answerBox = document.createElement("div");
+            answerBox.className = "message assistant-message";
+
+            const label = document.createElement("div");
+            label.className = "assistant-label";
+            label.textContent = "✦ Knowledge Copilot";
+
+            const answerText = document.createElement("div");
+            answerText.className = "answer-text thinking";
+            answerText.textContent = "Searching your knowledge base and generating an answer...";
+
+            answerBox.appendChild(label);
+            answerBox.appendChild(answerText);
+            messages.appendChild(answerBox);
+            scrollToBottom();
+
+            try {
+                const response = await fetch("/ask", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ question: question.trim() })
+                });
+
+                let data;
+
+                try {
+                    data = await response.json();
+                } catch {
+                    throw new Error("The server returned an invalid response.");
+                }
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.detail || `Request failed with status ${response.status}.`
+                    );
+                }
+
+                answerText.classList.remove("thinking");
+                answerText.textContent = data.answer || "No answer was returned.";
+
+                showSources(answerBox, data.sources);
+            } catch (error) {
+                answerText.classList.remove("thinking");
+                answerText.classList.add("error");
+
+                if (error instanceof TypeError) {
+                    answerText.textContent =
+                        "Could not connect to the backend. Check that FastAPI and Ollama are running.";
+                } else {
+                    answerText.textContent =
+                        "Unable to get an answer: " + error.message;
+                }
+
+                console.error("Knowledge Copilot request failed:", error);
+            } finally {
+                requestInProgress = false;
+                input.disabled = false;
+                sendButton.disabled = false;
+                sendButton.textContent = "↑ Send";
+                input.focus();
+                scrollToBottom();
+            }
+        }
+
+        form.addEventListener("submit", event => {
+            event.preventDefault();
+            askQuestion(input.value);
+        });
+
+        input.addEventListener("keydown", event => {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                form.requestSubmit();
+            }
+        });
+
+        input.addEventListener("input", () => {
+            input.style.height = "auto";
+            input.style.height = Math.min(input.scrollHeight, 140) + "px";
+        });
+
+        newChatButton.addEventListener("click", resetChat);
+
+        document.querySelectorAll(".suggestion").forEach(button => {
+            button.addEventListener("click", () => {
+                askQuestion(button.dataset.question || "");
+            });
+        });
+    </script>
+</body>
+</html>

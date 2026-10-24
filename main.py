@@ -1,8 +1,13 @@
 
+
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pathlib import Path
 from pydantic import BaseModel
 
 from rag import answer_question
+
 
 
 app = FastAPI(
@@ -10,6 +15,19 @@ app = FastAPI(
     description="An AI-powered enterprise knowledge assistant",
     version="0.3.0",
 )
+
+BASE_DIR = Path(__file__).resolve().parent
+
+app.mount(
+    "/static",
+    StaticFiles(directory=BASE_DIR / "static"),
+    name="static",
+)
+
+@app.get("/")
+def home():
+    return FileResponse(BASE_DIR / "static" / "index.html")
+
 
 
 class AskRequest(BaseModel):
